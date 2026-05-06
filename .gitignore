@@ -38,6 +38,11 @@
 /[Aa]ssets/Plugins/Editor/JetBrains*
 # Jetbrains Rider personal-layer settings
 *.DotSettings.user
+*.DotSettings
+.idea/
+
+# Local Unity AI Assistant settings
+/[Pp]roject[Ss]ettings/[Pp]ackages/com.unity.ai.assistant/
 
 # Visual Studio cache directory
 .vs/
