@@ -371,6 +371,7 @@ MonoBehaviour:
   nameText: {fileID: 6990447197192520232}
   hpText: {fileID: 5998595556954316764}
   roleText: {fileID: 0}
+  toneMarksRoot: {fileID: 1500925513510856692}
 --- !u!1 &5512890032837717701
 GameObject:
   m_ObjectHideFlags: 0

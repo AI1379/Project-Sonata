@@ -14,10 +14,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ProjectSonata.Battle.Domain.BattleEncounterDefinition
   playerParty:
   - {fileID: 11400000, guid: 244097e774d85cf4bb138045574c4956, type: 2}
-  - {fileID: 11400000, guid: 244097e774d85cf4bb138045574c4956, type: 2}
+  - {fileID: 11400000, guid: 15c5622e46ac99f41a2838057776a869, type: 2}
   - {fileID: 11400000, guid: 244097e774d85cf4bb138045574c4956, type: 2}
   enemyParty:
   - {fileID: 11400000, guid: e841d572248f97a4f8bcaa1047cf06ad, type: 2}
   - {fileID: 11400000, guid: e841d572248f97a4f8bcaa1047cf06ad, type: 2}
-  - {fileID: 11400000, guid: 94357f66007eeaa4a98739cbb01f4006, type: 2}
   startingTonality: 0

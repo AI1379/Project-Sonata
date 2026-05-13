@@ -1,3 +1,5 @@
+using System;
+
 namespace ProjectSonata.Battle.Domain
 {
     public sealed class BattleUnit
@@ -21,6 +23,7 @@ namespace ProjectSonata.Battle.Domain
         public int Speed { get; }
         public bool IsPlayerUnit { get; }
         public SkillDefinition[] Skills { get; }
+        public ToneStack ToneStack { get; } = new ToneStack();
 
         public bool IsAlive => CurrentHp > 0;
 

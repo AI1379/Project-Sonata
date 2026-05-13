@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 4616892565884566441}
   - component: {fileID: 3928116854221019877}
   - component: {fileID: 6280979772059898156}
+  - component: {fileID: 668243531264796357}
   m_Layer: 5
   m_Name: SkillButton
   m_TagString: Untagged
@@ -121,6 +122,21 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls: []
+--- !u!114 &668243531264796357
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2618319534750387549}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 314c023441634910b6382eb895a7c141, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ProjectSonata.Battle.UI.SkillButtonView
+  skillName: {fileID: 529595204575914402}
+  toneText: {fileID: 0}
+  button: {fileID: 6280979772059898156}
 --- !u!1 &3922314197620271457
 GameObject:
   m_ObjectHideFlags: 0

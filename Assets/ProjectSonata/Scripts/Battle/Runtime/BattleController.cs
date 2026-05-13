@@ -1,8 +1,8 @@
 using System.Collections.Generic;
 using System.Text;
-using GLTFast.Schema;
 using ProjectSonata.Battle.Domain;
 using ProjectSonata.Battle.UI;
+using TMPro;
 using UnityEngine;
 
 namespace ProjectSonata.Battle.Runtime
@@ -11,11 +11,22 @@ namespace ProjectSonata.Battle.Runtime
     {
         [SerializeField] private Transform playerSlots;
         [SerializeField] private Transform enemySlots;
+        [SerializeField] private Transform skillButtonsRoot;
 
         [SerializeField] private BattleUnitView battleUnitViewPrefab;
+        [SerializeField] private SkillButtonView skillButtonViewPrefab;
+        [SerializeField] private ToneMarkChipView chipViewPrefab;
+
+        [SerializeField] private TMP_Text currentEnemy;
+        [SerializeField] private TMP_Text currentSkill;
+        [SerializeField] private TMP_Text currentCharacter;
 
         private BattleState _battleState;
+        private BattleUnit _selectedUnit;
+        private BattleUnit _selectedEnemy;
+        private SkillDefinition _selectedSkill;
         private readonly List<BattleUnitView> _spawnedUnitViews = new List<BattleUnitView>();
+        private readonly List<SkillButtonView> _spawnedSkillButtonViews = new List<SkillButtonView>();
 
         public void StartBattle(BattleEncounterDefinition encounter)
         {
@@ -36,6 +47,11 @@ namespace ProjectSonata.Battle.Runtime
 
             SpawnUnit(_battleState.PlayerUnits, playerSlots);
             SpawnUnit(_battleState.EnemyUnits, enemySlots);
+
+            if (_battleState.CurrentPlayerUnit != null)
+            {
+                SelectPlayerUnit(_battleState.CurrentPlayerUnit);
+            }
         }
 
         private bool ValidateViewReference()
@@ -58,6 +74,24 @@ namespace ProjectSonata.Battle.Runtime
                 return false;
             }
 
+            if (skillButtonsRoot == null)
+            {
+                Debug.LogError("BattleController is missing a reference to the skill buttons container.", this);
+                return false;
+            }
+
+            if (skillButtonViewPrefab == null)
+            {
+                Debug.LogError("BattleController is missing a reference to the SkillButtonView prefab.", this);
+                return false;
+            }
+
+            if (chipViewPrefab == null)
+            {
+                Debug.LogError("BattleController is missing a reference to the ToneMarkChipView prefab.", this);
+                return false;
+            }
+
             return true;
         }
 
@@ -70,8 +104,85 @@ namespace ProjectSonata.Battle.Runtime
                 if (unit == null) continue;
 
                 var view = Instantiate(battleUnitViewPrefab, parent);
-                view.Bind(unit);
+
+                if (unit.IsPlayerUnit) view.Bind(unit, chipViewPrefab, SelectPlayerUnit);
+                else view.Bind(unit, chipViewPrefab, SelectEnemyUnit);
+
                 _spawnedUnitViews.Add(view);
+            }
+        }
+
+        private void SelectPlayerUnit(BattleUnit unit)
+        {
+            if (unit == null)
+            {
+                return;
+            }
+
+            if (!unit.IsPlayerUnit)
+            {
+                return;
+            }
+
+            _selectedUnit = unit;
+            RefreshSkillButtons(unit);
+            Debug.Log($"Selected player unit: {unit.DisplayName}", this);
+            currentCharacter.text = $"Selected: {unit.DisplayName}";
+        }
+
+        private void SelectEnemyUnit(BattleUnit unit)
+        {
+            if (unit == null) return;
+            if (unit.IsPlayerUnit) return;
+
+            _selectedEnemy = unit;
+
+            Debug.Log($"Selected enemy unit: {unit.DisplayName}", this);
+            currentEnemy.text = $"Selected Enemy: {unit.DisplayName}";
+        }
+
+        private void RefreshSkillButtons(BattleUnit unit)
+        {
+            ClearSpawnedSkillButtonViews();
+
+            if (unit.Skills == null)
+            {
+                return;
+            }
+
+            Debug.Log($"Updating skill buttons for {unit.DisplayName}", this);
+
+            foreach (var skill in unit.Skills)
+            {
+                if (skill == null)
+                {
+                    continue;
+                }
+
+                var view = Instantiate(skillButtonViewPrefab, skillButtonsRoot);
+                view.Bind(skill, OnSkillClicked);
+                Debug.Log($"Selected skill: {skill.DisplayName}", this);
+                _spawnedSkillButtonViews.Add(view);
+            }
+        }
+
+        private void OnSkillClicked(SkillDefinition skill)
+        {
+            if (_selectedUnit == null || skill == null)
+            {
+                return;
+            }
+
+            Debug.Log($"{_selectedUnit.DisplayName} selected skill: {skill.DisplayName}", this);
+            currentSkill.text = $"Current Skill: {skill.DisplayName}";
+            _selectedSkill = skill;
+
+            if (skill.AppliesTone)
+            {
+                _selectedEnemy.ToneStack.AddTone(skill.ToneToApply);
+                Debug.Log(
+                    $"{_selectedUnit.DisplayName} applied tone {skill.ToneToApply} to {_selectedEnemy.DisplayName}",
+                    this);
             }
         }
 
@@ -87,6 +198,19 @@ namespace ProjectSonata.Battle.Runtime
 
             ClearChildren(playerSlots);
             ClearChildren(enemySlots);
+            ClearSpawnedSkillButtonViews();
+        }
+
+        private void ClearSpawnedSkillButtonViews()
+        {
+            foreach (var view in _spawnedSkillButtonViews)
+            {
+                if (view != null)
+                    Destroy(view.gameObject);
+            }
+
+            _spawnedSkillButtonViews.Clear();
+            ClearChildren(skillButtonsRoot);
         }
 
         private static void ClearChildren(Transform transform)

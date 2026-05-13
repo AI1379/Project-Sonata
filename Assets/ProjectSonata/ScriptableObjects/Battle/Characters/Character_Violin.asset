@@ -18,3 +18,4 @@ MonoBehaviour:
   speed: 10
   skills:
   - {fileID: 11400000, guid: 690e71a5a255f8e47ab6b9364eb7ac17, type: 2}
+  - {fileID: 11400000, guid: ca325aa2de1f2ea438a88e3ad00fdccc, type: 2}

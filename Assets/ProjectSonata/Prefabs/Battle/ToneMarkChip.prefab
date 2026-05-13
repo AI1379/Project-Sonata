@@ -11,6 +11,7 @@ GameObject:
   - component: {fileID: 185091507808001859}
   - component: {fileID: 4235690789145151562}
   - component: {fileID: 5721400820308446547}
+  - component: {fileID: 7499776671250142668}
   m_Layer: 5
   m_Name: ToneMarkChip
   m_TagString: Untagged
@@ -76,6 +77,19 @@ MonoBehaviour:
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
   m_PixelsPerUnitMultiplier: 1
+--- !u!114 &7499776671250142668
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6125273853188244013}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ad559b1fbb0443769b4d84f854209e60, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ProjectSonata.Battle.UI.ToneMarkChipView
+  nameText: {fileID: 5644751964265108131}
 --- !u!1 &7150826248140993763
 GameObject:
   m_ObjectHideFlags: 0
