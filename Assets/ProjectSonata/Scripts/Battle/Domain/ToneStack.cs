@@ -52,5 +52,14 @@ namespace ProjectSonata.Battle.Domain
 
             OnChange?.Invoke(this);
         }
+
+        public void ClearTones()
+        {
+            if (_tones.Count == 0)
+                return;
+
+            _tones.Clear();
+            OnChange?.Invoke(this);
+        }
     }
 }

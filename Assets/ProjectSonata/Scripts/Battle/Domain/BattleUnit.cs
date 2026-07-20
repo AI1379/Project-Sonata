@@ -27,6 +27,8 @@ namespace ProjectSonata.Battle.Domain
 
         public bool IsAlive => CurrentHp > 0;
 
+        public event Action<BattleUnit> OnHpChanged;
+
         public void TakeDamage(int amount)
         {
             if (amount < 0)
@@ -34,12 +36,17 @@ namespace ProjectSonata.Battle.Domain
                 amount = 0;
             }
 
+            if (amount == 0)
+                return;
+
             CurrentHp -= amount;
 
             if (CurrentHp < 0)
             {
                 CurrentHp = 0;
             }
+
+            OnHpChanged?.Invoke(this);
         }
 
         public void Heal(int amount)
@@ -49,12 +56,17 @@ namespace ProjectSonata.Battle.Domain
                 amount = 0;
             }
 
+            if (amount == 0)
+                return;
+
             CurrentHp += amount;
 
             if (CurrentHp > MaxHp)
             {
                 CurrentHp = MaxHp;
             }
+
+            OnHpChanged?.Invoke(this);
         }
 
         public static BattleUnit FromCharacter(CharacterDefinition definition)

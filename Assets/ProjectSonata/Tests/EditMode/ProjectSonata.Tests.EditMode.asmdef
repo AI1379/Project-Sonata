@@ -1,0 +1,22 @@
+{
+    "name": "ProjectSonata.Tests.EditMode",
+    "rootNamespace": "ProjectSonata.Tests.EditMode",
+    "references": [
+        "ProjectSonata",
+        "UnityEngine.TestRunner",
+        "UnityEditor.TestRunner"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "autoReferenced": true,
+    "defineConstraints": [
+        "UNITY_INCLUDE_TESTS"
+    ],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
+

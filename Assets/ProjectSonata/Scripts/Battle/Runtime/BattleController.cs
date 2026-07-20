@@ -25,8 +25,14 @@ namespace ProjectSonata.Battle.Runtime
         private BattleUnit _selectedUnit;
         private BattleUnit _selectedEnemy;
         private SkillDefinition _selectedSkill;
+        private SkillResolver _skillResolver;
         private readonly List<BattleUnitView> _spawnedUnitViews = new List<BattleUnitView>();
         private readonly List<SkillButtonView> _spawnedSkillButtonViews = new List<SkillButtonView>();
+
+        private void Awake()
+        {
+            _skillResolver = new SkillResolver();
+        }
 
         public void StartBattle(BattleEncounterDefinition encounter)
         {
@@ -48,9 +54,27 @@ namespace ProjectSonata.Battle.Runtime
             SpawnUnit(_battleState.PlayerUnits, playerSlots);
             SpawnUnit(_battleState.EnemyUnits, enemySlots);
 
+            AutoSelectFirstEnemy();
+
             if (_battleState.CurrentPlayerUnit != null)
             {
                 SelectPlayerUnit(_battleState.CurrentPlayerUnit);
+            }
+        }
+
+        private void AutoSelectFirstEnemy()
+        {
+            var enemies = _battleState?.EnemyUnits;
+            if (enemies == null || enemies.Length == 0)
+                return;
+
+            foreach (var enemy in enemies)
+            {
+                if (enemy != null && enemy.IsAlive)
+                {
+                    SelectEnemyUnit(enemy);
+                    return;
+                }
             }
         }
 
@@ -173,16 +197,39 @@ namespace ProjectSonata.Battle.Runtime
                 return;
             }
 
-            Debug.Log($"{_selectedUnit.DisplayName} selected skill: {skill.DisplayName}", this);
-            currentSkill.text = $"Current Skill: {skill.DisplayName}";
+            if (_selectedEnemy == null || !_selectedEnemy.IsAlive)
+            {
+                Debug.LogWarning("Cannot cast skill: no living enemy selected.", this);
+                if (currentSkill != null)
+                    currentSkill.text = "Select an enemy first!";
+                return;
+            }
+
             _selectedSkill = skill;
 
-            if (skill.AppliesTone)
+            var result = _skillResolver.Resolve(_selectedUnit, _selectedEnemy, skill);
+
+            if (result == null)
             {
-                _selectedEnemy.ToneStack.AddTone(skill.ToneToApply);
-                Debug.Log(
-                    $"{_selectedUnit.DisplayName} applied tone {skill.ToneToApply} to {_selectedEnemy.DisplayName}",
-                    this);
+                return;
+            }
+
+            Debug.Log(result.LogMessage, this);
+
+            if (result.TriggeredResonance && currentSkill != null)
+            {
+                var resonance = result.Resonance.Value;
+                currentSkill.text = $"RESONANCE: {resonance.DisplayName} ({resonance.TargetDamage} dmg)";
+            }
+            else if (currentSkill != null)
+            {
+                currentSkill.text = $"Current Skill: {skill.DisplayName}";
+            }
+
+            if (!result.Target.IsAlive)
+            {
+                Debug.Log($"{result.Target.DisplayName} defeated.", this);
+                AutoSelectFirstEnemy();
             }
         }
 

@@ -24,6 +24,7 @@ namespace ProjectSonata.Battle.UI
             if (_boundUnit != null)
             {
                 _boundUnit.ToneStack.OnChange -= HandleToneStackChanged;
+                _boundUnit.OnHpChanged -= HandleHpChanged;
             }
 
             _boundUnit = unit;
@@ -42,6 +43,7 @@ namespace ProjectSonata.Battle.UI
             if (_boundUnit != null)
             {
                 _boundUnit.ToneStack.OnChange += HandleToneStackChanged;
+                _boundUnit.OnHpChanged += HandleHpChanged;
             }
 
             Refresh();
@@ -91,12 +93,18 @@ namespace ProjectSonata.Battle.UI
             if (_boundUnit != null)
             {
                 _boundUnit.ToneStack.OnChange -= HandleToneStackChanged;
+                _boundUnit.OnHpChanged -= HandleHpChanged;
             }
         }
 
         private void HandleToneStackChanged(ToneStack stack)
         {
             RefreshToneChips();
+        }
+
+        private void HandleHpChanged(BattleUnit unit)
+        {
+            Refresh();
         }
 
         private void RefreshToneChips()
