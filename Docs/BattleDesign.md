@@ -553,8 +553,9 @@ actionGauge >= 100 → 进入 Ready
 
 ### 14.1 Phase 1 剩余项
 
-- [ ] Buff 系统（Harmonic Armor、DoT）
-- [ ] 完全五度的双路径倍率数值定稿
+- [x] Buff 系统（Harmonic Armor 已实现为 bool 状态；DoT 待实现）
+- [x] 完全五度的双路径机制（CG→E vs CE→G）
+- [ ] 完全五度的"减伤 / Cleanse"次效果（当前 ViaFifth 路径只有加伤，加错音只清空 stack）
 - [ ] Minor Triad 的 DoT 实现
 - [ ] ActionTimeline / Tempo 系统
 - [ ] 资源系统（共鸣槽 + 节拍点）
@@ -588,6 +589,18 @@ actionGauge >= 100 → 进入 Ready
 ## 15. 设计决策日志
 
 记录"为什么这么决定"，避免未来反复讨论。最新决策放在最上面。
+
+### 2026-07-19 · Perfect Fifth 双路径机制第一版数值定稿
+
+**决定**：
+- Harmonic Armor 第一版简化为 `bool` 状态（标记"曾形成过 PerfectFifth"），不做减伤 / Cleanse 次效果
+- ViaFifth 路径倍率：MajorTriad ×1.5（40 → 60），MinorTriad ×1.3（25 → 32）
+- 加错音（如 [C,G,B]）触发 PerfectFifth 独立结算：0 伤害，消耗 buff，清空 stack（惩罚 = 失去凑和弦的机会）
+
+**理由**：
+- 第一版先验证"路径差分"机制成立，复杂的减伤 / Cleanse 留到 buff 系统建好后接入
+- ×1.5 是中庸倍率，既让玩家感受到 ViaFifth 路径的奖励，又不至于让 ViaThird 路径完全被淘汰
+- 加错音的惩罚是"机制代价"而非数值惩罚，更符合原神元素量失效的逻辑
 
 ### 2026-07-19 · 资源系统双层架构（共鸣槽 + 节拍点）
 

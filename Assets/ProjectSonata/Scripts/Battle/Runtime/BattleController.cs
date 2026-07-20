@@ -219,11 +219,21 @@ namespace ProjectSonata.Battle.Runtime
             if (result.TriggeredResonance && currentSkill != null)
             {
                 var resonance = result.Resonance.Value;
-                currentSkill.text = $"RESONANCE: {resonance.DisplayName} ({resonance.TargetDamage} dmg)";
+                var pathLabel = resonance.FormationPath switch
+                {
+                    ResonanceFormationPath.TriadViaFifth => "via 5th",
+                    ResonanceFormationPath.TriadViaThird => "via 3rd",
+                    _ => "",
+                };
+                var armorLabel = resonance.ConsumedHarmonicArmor ? " [armor consumed]" : "";
+                var pathDisplay = string.IsNullOrEmpty(pathLabel) ? "" : $" ({pathLabel})";
+                currentSkill.text = $"RESONANCE: {resonance.DisplayName}{pathDisplay} ({resonance.TargetDamage} dmg){armorLabel}";
             }
             else if (currentSkill != null)
             {
-                currentSkill.text = $"Current Skill: {skill.DisplayName}";
+                // Show Harmonic Armor state if it just got attached
+                var armorState = _selectedEnemy.HasHarmonicArmor ? " [5° armor]" : "";
+                currentSkill.text = $"Current Skill: {skill.DisplayName}{armorState}";
             }
 
             if (!result.Target.IsAlive)

@@ -6,6 +6,10 @@ namespace ProjectSonata.Tests.EditMode
 {
     public class ResonanceDetectorTests
     {
+        // ──────────────────────────────────────────────────────────────
+        // Basic detection
+        // ──────────────────────────────────────────────────────────────
+
         [Test]
         public void Detect_EmptyList_ReturnsNone()
         {
@@ -20,6 +24,10 @@ namespace ProjectSonata.Tests.EditMode
             var match = ResonanceDetector.Detect(new[] { Tone.C });
             Assert.IsFalse(match.IsDetected);
         }
+
+        // ──────────────────────────────────────────────────────────────
+        // Triad detection (type)
+        // ──────────────────────────────────────────────────────────────
 
         [Test]
         public void Detect_MajorTriad_CEG_ReturnsMajorTriad()
@@ -71,25 +79,111 @@ namespace ProjectSonata.Tests.EditMode
             Assert.AreEqual(ResonanceType.MajorTriad, match.Type);
         }
 
+        // ──────────────────────────────────────────────────────────────
+        // Formation path detection (the dual-path mechanism)
+        // ──────────────────────────────────────────────────────────────
+
         [Test]
-        public void Detect_PerfectFifth_CG_ReturnsPerfectFifth()
+        public void Detect_Triad_CE_ThenG_IsViaThird()
         {
-            var match = ResonanceDetector.Detect(new[] { Tone.C, Tone.G });
-            Assert.AreEqual(ResonanceType.PerfectFifth, match.Type);
+            // C-E laid first, G added last → ViaThird (base damage path)
+            var match = ResonanceDetector.Detect(new[] { Tone.C, Tone.E, Tone.G });
+            Assert.AreEqual(ResonanceFormationPath.TriadViaThird, match.FormationPath);
         }
 
         [Test]
-        public void Detect_PerfectFifth_DA_ReturnsPerfectFifth()
+        public void Detect_Triad_CG_ThenE_IsViaFifth()
+        {
+            // C-G laid first (perfect fifth), E added last → ViaFifth (bonus path)
+            var match = ResonanceDetector.Detect(new[] { Tone.C, Tone.G, Tone.E });
+            Assert.AreEqual(ResonanceFormationPath.TriadViaFifth, match.FormationPath);
+        }
+
+        [Test]
+        public void Detect_Triad_GC_ThenE_IsViaFifth()
+        {
+            // Same as above but reverse insertion order of the fifth pair
+            var match = ResonanceDetector.Detect(new[] { Tone.G, Tone.C, Tone.E });
+            Assert.AreEqual(ResonanceFormationPath.TriadViaFifth, match.FormationPath);
+        }
+
+        [Test]
+        public void Detect_Triad_FA_ThenC_IsViaThird()
+        {
+            // F-A third pair laid first, C (fifth above F) added last
+            var match = ResonanceDetector.Detect(new[] { Tone.F, Tone.A, Tone.C });
+            Assert.AreEqual(ResonanceFormationPath.TriadViaThird, match.FormationPath);
+        }
+
+        [Test]
+        public void Detect_Triad_FC_ThenA_IsViaFifth()
+        {
+            // F-C fifth pair laid first, A (third above F) added last
+            var match = ResonanceDetector.Detect(new[] { Tone.F, Tone.C, Tone.A });
+            Assert.AreEqual(ResonanceFormationPath.TriadViaFifth, match.FormationPath);
+        }
+
+        // ──────────────────────────────────────────────────────────────
+        // Perfect Fifth — NO LONGER auto-triggered as 2-tone resonance
+        // ──────────────────────────────────────────────────────────────
+
+        [Test]
+        public void Detect_PerfectFifth_CG_ReturnsNone()
+        {
+            // Changed behavior: 2-tone Perfect Fifth is no longer returned by Detect.
+            // It's handled by SkillResolver as Harmonic Armor attachment.
+            var match = ResonanceDetector.Detect(new[] { Tone.C, Tone.G });
+            Assert.IsFalse(match.IsDetected);
+        }
+
+        [Test]
+        public void Detect_PerfectFifth_DA_ReturnsNone()
         {
             var match = ResonanceDetector.Detect(new[] { Tone.D, Tone.A });
-            Assert.AreEqual(ResonanceType.PerfectFifth, match.Type);
+            Assert.IsFalse(match.IsDetected);
         }
+
+        // ──────────────────────────────────────────────────────────────
+        // ContainsPerfectFifth (used by SkillResolver for Harmonic Armor logic)
+        // ──────────────────────────────────────────────────────────────
+
+        [Test]
+        public void ContainsPerfectFifth_CG_ReturnsTrue()
+        {
+            Assert.IsTrue(ResonanceDetector.ContainsPerfectFifth(new[] { Tone.C, Tone.G }));
+        }
+
+        [Test]
+        public void ContainsPerfectFifth_CGA_ReturnsTrue()
+        {
+            // 3 tones, contains a fifth pair (C-G)
+            Assert.IsTrue(ResonanceDetector.ContainsPerfectFifth(new[] { Tone.C, Tone.G, Tone.A }));
+        }
+
+        [Test]
+        public void ContainsPerfectFifth_CE_ReturnsFalse()
+        {
+            // Major third, not a fifth
+            Assert.IsFalse(ResonanceDetector.ContainsPerfectFifth(new[] { Tone.C, Tone.E }));
+        }
+
+        [Test]
+        public void ContainsPerfectFifth_CEG_ReturnsTrue()
+        {
+            // Triad contains the C-G fifth pair
+            Assert.IsTrue(ResonanceDetector.ContainsPerfectFifth(new[] { Tone.C, Tone.E, Tone.G }));
+        }
+
+        // ──────────────────────────────────────────────────────────────
+        // Dissonance (still auto-triggers at 2 tones)
+        // ──────────────────────────────────────────────────────────────
 
         [Test]
         public void Detect_Dissonance_CD_ReturnsDissonance()
         {
             var match = ResonanceDetector.Detect(new[] { Tone.C, Tone.D });
             Assert.AreEqual(ResonanceType.Dissonance, match.Type);
+            Assert.AreEqual(ResonanceFormationPath.Direct, match.FormationPath);
         }
 
         [Test]
@@ -106,6 +200,10 @@ namespace ProjectSonata.Tests.EditMode
             Assert.AreEqual(ResonanceType.Dissonance, match.Type);
         }
 
+        // ──────────────────────────────────────────────────────────────
+        // Edge cases
+        // ──────────────────────────────────────────────────────────────
+
         [Test]
         public void Detect_TwoUnrelatedTones_CE_ReturnsNone()
         {
@@ -114,19 +212,8 @@ namespace ProjectSonata.Tests.EditMode
         }
 
         [Test]
-        public void Detect_TriadBeatsPairPriority()
-        {
-            // C-E-G is a major triad; the pair E-G would otherwise be a third (no resonance).
-            // Triad detection should win when 3 tones form a chord.
-            var match = ResonanceDetector.Detect(new[] { Tone.C, Tone.E, Tone.G });
-            Assert.AreEqual(ResonanceType.MajorTriad, match.Type);
-        }
-
-        [Test]
         public void Detect_LastThreeTonesUsedWhenStackFull()
         {
-            // Stack contains more than 3 (e.g. when caller passes a larger list);
-            // detection should consider the most recently added 3 tones.
             var match = ResonanceDetector.Detect(new[] { Tone.A, Tone.C, Tone.E, Tone.G });
             Assert.AreEqual(ResonanceType.MajorTriad, match.Type);
         }

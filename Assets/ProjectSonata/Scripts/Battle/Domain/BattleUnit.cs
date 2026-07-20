@@ -25,9 +25,36 @@ namespace ProjectSonata.Battle.Domain
         public SkillDefinition[] Skills { get; }
         public ToneStack ToneStack { get; } = new ToneStack();
 
+        /// <summary>
+        /// Active while the unit's ToneStack contains (or contained) a Perfect Fifth
+        /// pair without yet triggering a triad. Consumed on the next resonance
+        /// resolution. See BattleDesign §7 Perfect Fifth dual-path mechanism.
+        /// </summary>
+        public bool HasHarmonicArmor { get; private set; }
+
         public bool IsAlive => CurrentHp > 0;
 
         public event Action<BattleUnit> OnHpChanged;
+        public event Action<BattleUnit> OnHarmonicArmorChanged;
+
+        public void ApplyHarmonicArmor()
+        {
+            if (HasHarmonicArmor)
+                return;
+
+            HasHarmonicArmor = true;
+            OnHarmonicArmorChanged?.Invoke(this);
+        }
+
+        public bool ConsumeHarmonicArmor()
+        {
+            if (!HasHarmonicArmor)
+                return false;
+
+            HasHarmonicArmor = false;
+            OnHarmonicArmorChanged?.Invoke(this);
+            return true;
+        }
 
         public void TakeDamage(int amount)
         {

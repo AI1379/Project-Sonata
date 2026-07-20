@@ -44,6 +44,7 @@ namespace ProjectSonata.Battle.UI
             {
                 _boundUnit.ToneStack.OnChange += HandleToneStackChanged;
                 _boundUnit.OnHpChanged += HandleHpChanged;
+                _boundUnit.OnHarmonicArmorChanged += HandleHarmonicArmorChanged;
             }
 
             Refresh();
@@ -84,7 +85,10 @@ namespace ProjectSonata.Battle.UI
 
             if (roleText != null)
             {
-                roleText.text = _boundUnit.IsPlayerUnit ? "Player" : "Enemy";
+                var role = _boundUnit.IsPlayerUnit ? "Player" : "Enemy";
+                roleText.text = _boundUnit.HasHarmonicArmor
+                    ? $"{role} [5°]"
+                    : role;
             }
         }
 
@@ -94,6 +98,7 @@ namespace ProjectSonata.Battle.UI
             {
                 _boundUnit.ToneStack.OnChange -= HandleToneStackChanged;
                 _boundUnit.OnHpChanged -= HandleHpChanged;
+                _boundUnit.OnHarmonicArmorChanged -= HandleHarmonicArmorChanged;
             }
         }
 
@@ -103,6 +108,11 @@ namespace ProjectSonata.Battle.UI
         }
 
         private void HandleHpChanged(BattleUnit unit)
+        {
+            Refresh();
+        }
+
+        private void HandleHarmonicArmorChanged(BattleUnit unit)
         {
             Refresh();
         }
