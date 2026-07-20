@@ -20,18 +20,23 @@ namespace ProjectSonata.Battle.Runtime
         [SerializeField] private TMP_Text currentEnemy;
         [SerializeField] private TMP_Text currentSkill;
         [SerializeField] private TMP_Text currentCharacter;
+        [SerializeField] private TMP_Text timelineDisplay;
 
         private BattleState _battleState;
         private BattleUnit _selectedUnit;
         private BattleUnit _selectedEnemy;
         private SkillDefinition _selectedSkill;
         private SkillResolver _skillResolver;
+        private ActionTimeline _timeline;
+        private EnemyAI _enemyAI;
+        private bool _battleEnded;
         private readonly List<BattleUnitView> _spawnedUnitViews = new List<BattleUnitView>();
         private readonly List<SkillButtonView> _spawnedSkillButtonViews = new List<SkillButtonView>();
 
         private void Awake()
         {
             _skillResolver = new SkillResolver();
+            _enemyAI = new EnemyAI();
         }
 
         public void StartBattle(BattleEncounterDefinition encounter)
@@ -56,10 +61,18 @@ namespace ProjectSonata.Battle.Runtime
 
             AutoSelectFirstEnemy();
 
-            if (_battleState.CurrentPlayerUnit != null)
-            {
-                SelectPlayerUnit(_battleState.CurrentPlayerUnit);
-            }
+            // Initialize action timeline. All units start at gauge 0;
+            // AdvanceToNextReady will virtually advance time so the fastest unit acts first.
+            _timeline = new ActionTimeline();
+            _timeline.OnTimelineChanged += RefreshTimelineDisplay;
+            _battleEnded = false;
+            foreach (var unit in _battleState.PlayerUnits)
+                _timeline.Add(unit);
+            foreach (var unit in _battleState.EnemyUnits)
+                _timeline.Add(unit);
+
+            RefreshTimelineDisplay();
+            HandleNextTurn();
         }
 
         private void AutoSelectFirstEnemy()
@@ -138,20 +151,29 @@ namespace ProjectSonata.Battle.Runtime
 
         private void SelectPlayerUnit(BattleUnit unit)
         {
-            if (unit == null)
+            if (unit == null || !unit.IsPlayerUnit)
             {
                 return;
             }
 
-            if (!unit.IsPlayerUnit)
+            // Only the currently-ready player unit can be selected & operated.
+            // Tapping other player units just shows a hint so the player understands
+            // why nothing happens.
+            if (_timeline != null && _timeline.CurrentReady != unit)
             {
+                var currentName = _timeline.CurrentReady?.DisplayName ?? "—";
+                Debug.Log(
+                    $"Cannot select {unit.DisplayName}: current turn is {currentName}.", this);
+                if (currentCharacter != null)
+                    currentCharacter.text = $"Turn: {currentName}  ({unit.DisplayName} is not ready)";
                 return;
             }
 
             _selectedUnit = unit;
             RefreshSkillButtons(unit);
             Debug.Log($"Selected player unit: {unit.DisplayName}", this);
-            currentCharacter.text = $"Selected: {unit.DisplayName}";
+            if (currentCharacter != null)
+                currentCharacter.text = $"Turn: {unit.DisplayName}";
         }
 
         private void SelectEnemyUnit(BattleUnit unit)
@@ -192,8 +214,18 @@ namespace ProjectSonata.Battle.Runtime
 
         private void OnSkillClicked(SkillDefinition skill)
         {
-            if (_selectedUnit == null || skill == null)
+            if (_selectedUnit == null || skill == null || _battleEnded)
             {
+                return;
+            }
+
+            if (_timeline == null || _timeline.CurrentReady == null ||
+                _timeline.CurrentReady != _selectedUnit)
+            {
+                Debug.LogWarning(
+                    $"Cannot act: {_selectedUnit.DisplayName} is not the current ready unit.", this);
+                if (currentSkill != null)
+                    currentSkill.text = $"Wait! {_selectedUnit.DisplayName} isn't ready.";
                 return;
             }
 
@@ -241,6 +273,133 @@ namespace ProjectSonata.Battle.Runtime
                 Debug.Log($"{result.Target.DisplayName} defeated.", this);
                 AutoSelectFirstEnemy();
             }
+
+            // Consume this unit's action and advance the timeline.
+            _timeline.ConsumeAction(_selectedUnit);
+            HandleNextTurn();
+        }
+
+        private void RefreshTimelineDisplay()
+        {
+            if (_timeline == null || timelineDisplay == null)
+                return;
+
+            var snapshot = _timeline.GetReadinessSnapshot();
+            var builder = new StringBuilder();
+            builder.AppendLine("TURN ORDER");
+
+            foreach (var unit in snapshot)
+            {
+                var marker = unit == _timeline.CurrentReady ? "★" : " ";
+                var percent = System.Math.Round(
+                    System.Math.Clamp(unit.ActionGauge / ActionTimeline.ReadyThreshold, 0f, 1f) * 100f);
+                var faction = unit.IsPlayerUnit ? "" : " [E]";
+                builder.AppendLine($"{marker} {unit.DisplayName}{faction}  {percent}%");
+            }
+
+            timelineDisplay.text = builder.ToString();
+        }
+
+        private void HandleNextTurn()
+        {
+            if (_battleEnded)
+                return;
+
+            CleanupTimeline();
+
+            if (CheckBattleEnd())
+                return;
+
+            var readyUnit = _timeline.AdvanceToNextReady();
+            if (readyUnit == null)
+            {
+                Debug.LogWarning("ActionTimeline produced no ready unit.", this);
+                return;
+            }
+
+            if (readyUnit.IsPlayerUnit)
+            {
+                SelectPlayerUnit(readyUnit);
+                if (currentCharacter != null)
+                    currentCharacter.text = $"Turn: {readyUnit.DisplayName}";
+            }
+            else
+            {
+                EnemyAct(readyUnit);
+            }
+        }
+
+        private void EnemyAct(BattleUnit enemy)
+        {
+            var target = _enemyAI.PickTarget(enemy, _battleState.PlayerUnits);
+            var action = _enemyAI.ExecuteAction(enemy, target);
+
+            Debug.Log(action.LogMessage, this);
+            if (currentSkill != null)
+                currentSkill.text = action.LogMessage;
+            if (currentCharacter != null)
+                currentCharacter.text = $"Turn: {enemy.DisplayName} (enemy)";
+
+            _timeline.ConsumeAction(enemy);
+
+            // Defer the next turn to next frame so the UI can render this enemy's action
+            // and we avoid deep recursion when multiple enemies chain-act.
+            // Phase 1: simple delay. Real version will use Coroutine + animation.
+            StartCoroutine(AdvanceAfterEnemyTurnRoutine());
+        }
+
+        private System.Collections.IEnumerator AdvanceAfterEnemyTurnRoutine()
+        {
+            yield return new WaitForSeconds(0.4f);
+            HandleNextTurn();
+        }
+
+        private void CleanupTimeline()
+        {
+            if (_timeline == null) return;
+
+            var toRemove = new List<BattleUnit>();
+            foreach (var unit in _timeline.Units)
+            {
+                if (unit == null || !unit.IsAlive)
+                    toRemove.Add(unit);
+            }
+
+            foreach (var unit in toRemove)
+                _timeline.Remove(unit);
+        }
+
+        private bool CheckBattleEnd()
+        {
+            var anyPlayerAlive = AnyAlive(_battleState.PlayerUnits);
+            var anyEnemyAlive = AnyAlive(_battleState.EnemyUnits);
+
+            if (anyPlayerAlive && anyEnemyAlive)
+                return false;
+
+            _battleEnded = true;
+            var result = !anyPlayerAlive ? "DEFEAT" : "VICTORY";
+            Debug.Log($"Battle ended: {result}", this);
+            if (currentSkill != null)
+                currentSkill.text = $"=== {result} ===";
+            if (currentCharacter != null)
+                currentCharacter.text = $"Battle ended";
+
+            return true;
+        }
+
+        private static bool AnyAlive(BattleUnit[] units)
+        {
+            if (units == null || units.Length == 0)
+                return false;
+
+            foreach (var unit in units)
+            {
+                if (unit != null && unit.IsAlive)
+                    return true;
+            }
+
+            return false;
         }
 
         private void ClearSpawnedUnitViews()

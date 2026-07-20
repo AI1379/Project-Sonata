@@ -45,6 +45,7 @@ namespace ProjectSonata.Battle.UI
                 _boundUnit.ToneStack.OnChange += HandleToneStackChanged;
                 _boundUnit.OnHpChanged += HandleHpChanged;
                 _boundUnit.OnHarmonicArmorChanged += HandleHarmonicArmorChanged;
+                _boundUnit.OnActionGaugeChanged += HandleActionGaugeChanged;
             }
 
             Refresh();
@@ -75,20 +76,23 @@ namespace ProjectSonata.Battle.UI
 
             if (nameText != null)
             {
-                nameText.text = _boundUnit.DisplayName;
+                nameText.text = _boundUnit.IsReady
+                    ? $"★ {_boundUnit.DisplayName}"
+                    : _boundUnit.DisplayName;
             }
 
             if (hpText != null)
             {
-                hpText.text = $"HP {_boundUnit.CurrentHp}/{_boundUnit.MaxHp}";
+                var gaugePercent = System.Math.Round(
+                    System.Math.Clamp(_boundUnit.ActionGauge / ActionTimeline.ReadyThreshold, 0f, 1f) * 100f);
+                hpText.text = $"HP {_boundUnit.CurrentHp}/{_boundUnit.MaxHp}  |  ATB {gaugePercent}%";
             }
 
             if (roleText != null)
             {
                 var role = _boundUnit.IsPlayerUnit ? "Player" : "Enemy";
-                roleText.text = _boundUnit.HasHarmonicArmor
-                    ? $"{role} [5°]"
-                    : role;
+                var armorTag = _boundUnit.HasHarmonicArmor ? " [5°]" : "";
+                roleText.text = $"{role}{armorTag}";
             }
         }
 
@@ -99,6 +103,7 @@ namespace ProjectSonata.Battle.UI
                 _boundUnit.ToneStack.OnChange -= HandleToneStackChanged;
                 _boundUnit.OnHpChanged -= HandleHpChanged;
                 _boundUnit.OnHarmonicArmorChanged -= HandleHarmonicArmorChanged;
+                _boundUnit.OnActionGaugeChanged -= HandleActionGaugeChanged;
             }
         }
 
@@ -113,6 +118,11 @@ namespace ProjectSonata.Battle.UI
         }
 
         private void HandleHarmonicArmorChanged(BattleUnit unit)
+        {
+            Refresh();
+        }
+
+        private void HandleActionGaugeChanged(BattleUnit unit)
         {
             Refresh();
         }

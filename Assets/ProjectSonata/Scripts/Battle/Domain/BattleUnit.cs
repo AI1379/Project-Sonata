@@ -26,6 +26,12 @@ namespace ProjectSonata.Battle.Domain
         public ToneStack ToneStack { get; } = new ToneStack();
 
         /// <summary>
+        /// Battle timeline progress. Reaches <see cref="ActionTimeline.ReadyThreshold"/>
+        /// when the unit is ready to act. See BattleDesign §9.
+        /// </summary>
+        public float ActionGauge { get; private set; }
+
+        /// <summary>
         /// Active while the unit's ToneStack contains (or contained) a Perfect Fifth
         /// pair without yet triggering a triad. Consumed on the next resonance
         /// resolution. See BattleDesign §7 Perfect Fifth dual-path mechanism.
@@ -34,8 +40,14 @@ namespace ProjectSonata.Battle.Domain
 
         public bool IsAlive => CurrentHp > 0;
 
+        /// <summary>
+        /// True when the unit's ActionGauge has reached the ready threshold.
+        /// </summary>
+        public bool IsReady => IsAlive && ActionGauge >= ActionTimeline.ReadyThreshold;
+
         public event Action<BattleUnit> OnHpChanged;
         public event Action<BattleUnit> OnHarmonicArmorChanged;
+        public event Action<BattleUnit> OnActionGaugeChanged;
 
         public void ApplyHarmonicArmor()
         {
@@ -54,6 +66,52 @@ namespace ProjectSonata.Battle.Domain
             HasHarmonicArmor = false;
             OnHarmonicArmorChanged?.Invoke(this);
             return true;
+        }
+
+        /// <summary>
+        /// Advances the unit's ActionGauge by the given delta, clamped to
+        /// a small overshoot above the ready threshold (so speed ties
+        /// resolve in insertion order rather than piling up indefinitely).
+        /// </summary>
+        public void AdvanceGauge(float delta)
+        {
+            if (!IsAlive || IsReady)
+                return;
+
+            ActionGauge += delta;
+
+            // Clamp to just above threshold to prevent runaway accumulation.
+            var cap = ActionTimeline.ReadyThreshold * 1.5f;
+            if (ActionGauge > cap)
+                ActionGauge = cap;
+
+            OnActionGaugeChanged?.Invoke(this);
+        }
+
+        /// <summary>
+        /// Directly modifies the gauge (used by Tempo skills to push/pull allies/enemies).
+        /// Values &lt; 0 reduce gauge; values &gt; 0 increase. Can push past threshold.
+        /// </summary>
+        public void ModifyGauge(float delta)
+        {
+            if (!IsAlive)
+                return;
+
+            ActionGauge = System.Math.Clamp(ActionGauge + delta, 0f, ActionTimeline.ReadyThreshold * 2f);
+            OnActionGaugeChanged?.Invoke(this);
+        }
+
+        /// <summary>
+        /// Consumes one ready action, dropping the gauge by the threshold.
+        /// Called by ActionTimeline after a unit finishes acting.
+        /// </summary>
+        public void ConsumeAction()
+        {
+            if (ActionGauge >= ActionTimeline.ReadyThreshold)
+            {
+                ActionGauge -= ActionTimeline.ReadyThreshold;
+                OnActionGaugeChanged?.Invoke(this);
+            }
         }
 
         public void TakeDamage(int amount)

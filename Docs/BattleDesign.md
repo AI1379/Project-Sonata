@@ -555,14 +555,14 @@ actionGauge >= 100 → 进入 Ready
 
 - [x] Buff 系统（Harmonic Armor 已实现为 bool 状态；DoT 待实现）
 - [x] 完全五度的双路径机制（CG→E vs CE→G）
-- [ ] 完全五度的"减伤 / Cleanse"次效果（当前 ViaFifth 路径只有加伤，加错音只清空 stack）
+- [ ] 完全五度的"减伤 / Cleanance"次效果（当前 ViaFifth 路径只有加伤，加错音只清空 stack）
 - [ ] Minor Triad 的 DoT 实现
-- [ ] ActionTimeline / Tempo 系统
+- [x] ActionTimeline / Tempo 系统（离散推进版已实现；Tempo 操控技能待接入）
+- [x] EnemyAI 最小版（随机攻击玩家；正式行为树待设计）
+- [x] 战斗胜负判定（VICTORY / DEFEAT）
 - [ ] 资源系统（共鸣槽 + 节拍点）
 - [ ] 技能卡系统（4 槽装备、节拍点消耗）
 - [ ] 大招（消耗共鸣槽）
-- [ ] 敌人 AI
-- [ ] 战斗胜负判定
 - [ ] 调性切换及其战斗效果
 - [ ] 战斗日志面板 UI
 - [ ] 共鸣触发动画 / 反馈
@@ -589,6 +589,19 @@ actionGauge >= 100 → 进入 Ready
 ## 15. 设计决策日志
 
 记录"为什么这么决定"，避免未来反复讨论。最新决策放在最上面。
+
+### 2026-07-19 · ActionTimeline 离散推进 + 最小 EnemyAI
+
+**决定**：
+- 第一版采用**离散推进**算法（不依赖 deltaTime），由 `ActionTimeline.AdvanceToNextReady` 一次性把虚拟时间推进到下一个 Ready 单位
+- EnemyAI 极简：Ready 时随机攻击一个玩家，无挂音、无共鸣
+- 多个敌人连续行动时，每次行动间加 0.4 秒 Coroutine 延迟，避免 UI 闪烁和深递归
+- 战斗胜负判定同步加入（玩家全死 / 敌人全死即结束）
+
+**理由**：
+- 离散推进避开 deltaTime / Coroutine / 暂停逻辑的复杂度，让原型阶段快速验证 ATB 节奏感
+- EnemyAI 占位足够让战斗"双向"，但留好 PickTarget / ExecuteAction 拆分供后续替换为 ScriptableObject 行为树
+- 0.4 秒延迟是 Phase 1 的可视化妥协，Phase 2 接正式动画时改为事件驱动
 
 ### 2026-07-19 · Perfect Fifth 双路径机制第一版数值定稿
 
